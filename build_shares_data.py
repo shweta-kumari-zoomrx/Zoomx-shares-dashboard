@@ -279,7 +279,7 @@ def main():
         "lots": LOTS,
         "timeframes": {"current": "Current (Q3.40)", "future": "Future (Q6.10)"},
         "capMethods": {"none": "Deck (no cap)", "winsor95": "Winsorize @95th", "median3x": "Cap @3× median"},
-        "series": series_all,
+        "series": {ind: gen.ordered_series(ind) for ind in INDS},  # deck stack/legend order
         "selections": sel_meta,
         "nTotal": len(records),
         "nActive": len([r for r in records if r["OL"] != 1]),

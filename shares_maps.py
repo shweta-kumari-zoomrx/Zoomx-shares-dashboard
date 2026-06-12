@@ -222,6 +222,31 @@ MAPS_IHCU = {   'EC': {   '1L': {   'Dostarlimab + chemotherapy': 'Q6_10Z_EC_IHC
                         'Product X': 'Q6_10Z_CC_IHCU_3L_A6',
                         'Other': 'Q6_10Z_CC_IHCU_3L_OTHU_3'}}}
 
+# Series stack/legend order as it appears in the deck charts (slides 11-18), extracted
+# once from the template chart XML on 2026-06-12. First entry = bottom of the stack /
+# first in legend, matching PowerPoint. Names use the ALL_SERIES canonical spelling.
+# Data series absent from the deck chart (e.g. EC "Pembrolizumab", "Other") are appended
+# after these, in ALL_SERIES order, by ordered_series().
+SERIES_ORDER = {
+    "EC": ["Product X", "Pembrolizumab + Lenvatinib", "Pembrolizumab + chemotherapy",
+           "Durvalumab + chemotherapy +/- Olaparib", "Dostarlimab + chemotherapy",
+           "Dostarlimab", "Endocrine Therapy", "Clinical Trial",
+           "Chemotherapy (carboplatin, taxol)"],
+    "OC": ["Product X", "Rucaparib", "niraparib", "Mirvetuximab soravtansine",
+           "Bevacizumab + chemotherapy", "Olaparib +/- Bevacizumab",
+           "Chemotherapy (carboplatin, taxol)", "Clinical Trial"],
+    "CC": ["Product X", "Pembrolizumab +/- Bevacizumab + chemotherapy", "Cemiplimab",
+           "Tisotumab vedotin", "Clinical Trial", "Chemotherapy (carboplatin, taxol)"],
+}
+
+
+def ordered_series(ind):
+    """Deck chart order first, then any remaining ALL_SERIES entries (deck-absent)."""
+    al = ALL_SERIES[ind]
+    deck = [s for s in SERIES_ORDER.get(ind, []) if s in al]
+    return deck + [s for s in al if s not in deck]
+
+
 def map_region(v):
     if not v: return "Unknown"
     s=str(v)
