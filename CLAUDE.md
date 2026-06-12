@@ -4,6 +4,15 @@ React + Plotly dashboard of **current (Q3.40)** and **future (Q6.10)** treatment
 built on the **exact deck methodology** (`../generate_slides.py`, slides 11–18).
 Sibling of the Sankey dashboard (`../Sankey`).
 
+## Live / privacy
+- **Live:** https://shweta-kumari-zoomrx.github.io/Zoomx-shares-dashboard/ (repo `Zoomx-shares-dashboard`, branch `gh-pages`).
+- **AGGREGATE-ONLY — no microdata is ever published.** The site ships only
+  `public/shares_agg.json` (computed weighted/unweighted shares per cell). Per-respondent
+  rows stay local in `/data` (git-ignored). `public/Shares_RD.xlsx` is git-ignored and must
+  never be committed. (An early commit accidentally pushed it; history was amended +
+  force-pushed on 2026-06-12 to purge it. Don't reintroduce it.)
+- Deploy is gated by the safety classifier for microdata — keep it aggregate-only.
+
 ## Dependencies — SELF-CONTAINED
 The dashboard depends on **only the RD Excel** (`../ENH Gyn RD 2026.xlsx`) for data.
 Survey-definition metadata (drug↔A-code maps, series, region map) lives in the local
@@ -17,16 +26,18 @@ optional one-time correctness check, NOT part of build/deploy.)
   `KNOWN_MISSING`, `REGION_MAP`, `map_region`. Regenerate only if survey options change.
 - `build_shares_data.py` — reads the RD + `shares_maps.py`, derives current-share columns
   from future ones (`Q6_10Z_{EC}_..._OTH3_1` → `Q3_40Z_{E}_..._other`), reproduces the OL
-  union inline, and writes:
-  - `public/Shares_RD.xlsx` — one row per respondent (PII-stripped): RespID, OL flag,
-    Practice Setting, Specialty, Region, + every mapped numeric column. `---` preserved.
-  - `src/sharesConfig.json` — series, knownMissing, current/future column maps, weights.
-- `src/utils/sharesBuilder.js` — JS clone of `stratum_atu` / `ihc_patient_volumes` /
-  `overall_shares`, + weight capping (winsor95 / median3x). Computes live per filter.
-- `validate_shares.py` — proves the JS clone == deck functions (last run: max diff 1e-16).
+  union inline, computes shares (incl. winsor95 / median3x weight caps) for a menu of
+  single-segment selections, and writes:
+  - `public/shares_agg.json` — **aggregate-only** (no microdata): computed weighted/
+    unweighted shares per selection × timeframe × ind × stratum × LoT × series + n. ~430 KB.
+  - `data/Shares_RD.xlsx` — de-identified microdata, **git-ignored, local only** (for validation).
+- `src/utils/sharesBuilder.js` — pure **lookup** into `shares_agg.json` (no browser-side
+  computation, no microdata). App = segment dropdown (one segment at a time; no cross combos).
+- `validate_shares.py` — proves the Python clone == deck functions (last run: max diff 1e-16).
+  Optional one-time check; imports the deck only here, not in build/deploy.
 
 ## Key facts
-- Base: GLOBAL_OL dropped (61) → OL union excluded → **n=55 active** (= deck). OL flag in xlsx.
+- Base: GLOBAL_OL dropped (61) → OL union excluded → **n=55 active** (= deck).
 - **Product X (ENHERTU) has no current (Q3.40) column** at 2L/3L — not yet marketed; current
   share is 0 by construction (18 "missing column" warnings in build are these, expected).
 - Weights = `Q3_25Z_{E/O/C}_{LoT}_{stratum}`. Overall = IHC-patient-volume blend of 3 strata.
@@ -36,9 +47,11 @@ optional one-time correctness check, NOT part of build/deploy.)
 
 ## Refresh / deploy
 1. Update `../ENH Gyn RD 2026.xlsx`.
-2. `npm run deploy` → `builddata` (python) → build → gh-pages.  (`npm run builddata` for data only.)
+2. `npm run deploy` → `builddata` (python, rebuilds aggregates) → build → gh-pages.
+   (`npm run builddata` for data only.) Publishes aggregates only — safe.
 3. **Always re-run `python validate_shares.py` after a data refresh** — confirms math still == deck.
 
-## NOT yet done
-- No GitHub repo / Pages deploy yet (recommended: new repo `Zoomx-shares-dashboard`, separate
-  from Sankey). Deploy is outward-facing — confirm with user before publishing.
+## Adding a new segment to filter
+Edit the `selections` list in `build_shares_data.py` (currently All + each value of
+Practice Setting / Specialty / Region). Only single-segment cells are precomputed — true
+cross-segment combinations would need microdata (deliberately not shipped).
